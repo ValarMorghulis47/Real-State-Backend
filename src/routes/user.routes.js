@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { changeCurrentPassword, deleteUserAccount, forgotPassword, getCurrentUser, getUserProfile, loginUser, logoutUser, refereshAccessToken, registerUser, resetPassword, upDateUserDetails, verifyPasswordResetToken } from "../controller/user.controller.js"
+import { changeCurrentPassword, deleteUserAccount, forgotPassword, getAllUsers, getCurrentUser, getSingleUser, getUserProfile, loginUser, logoutUser, refereshAccessToken, registerUser, resetPassword, upDateUserDetails, verifyPasswordResetToken } from "../controller/user.controller.js"
 import { upload } from "../middlewares/multer.middleware.js"
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { isAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
@@ -27,6 +27,7 @@ router.route("/currentuser").get(verifyJWT, getCurrentUser)
 router.route("/update-account").patch(verifyJWT, upload.fields("avatar"), upDateUserDetails)
 router.route("/profile/:userId").get(verifyJWT, getUserProfile)
 router.route("/delete-account").get(verifyJWT, deleteUserAccount)
-
-
+//Admin routes
+router.route("/admin/AllUser").get(verifyJWT, isAdmin, getAllUsers)
+router.route("/admin/SingleUser").get(verifyJWT, isAdmin, getSingleUser)
 export default router;

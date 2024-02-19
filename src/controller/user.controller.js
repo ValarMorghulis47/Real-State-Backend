@@ -44,7 +44,7 @@ const registerUser = asyncHandler(async (req, res) => {
         const error = new ApiError(408, "Username or Email Already Exists");
         return res.status(error.statusCode).json(error.toResponse());
     }
-    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const avatarLocalPath = req.file?.path;
     if (!avatarLocalPath) {
         const error = new ApiError(408, "Avatar File Is Required");
         return res.status(error.statusCode).json(error.toResponse());
@@ -430,4 +430,30 @@ const resetPassword = asyncHandler(async (req, res) => {
     )
 });
 
-export { registerUser, loginUser, logoutUser, refereshAccessToken, changeCurrentPassword, getCurrentUser, upDateUserDetails, getUserProfile, deleteUserAccount, forgotPassword, resetPassword, verifyPasswordResetToken };
+//Admin Controllers
+const getAllUsers = asyncHandler(async (req, res) => {
+    const { page=1, limit=10 } = req.query;
+    const users = await User.find({ role: { $ne: 'admin' } }).select("-password").limit(limit * 1).skip((page - 1) * limit);
+    const toalusers = await User.countDocuments({ role: { $ne: 'admin' } });
+    if (!users?.length) {
+        const error = new ApiError(404, "No Users Found");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    return res.status(200).json(
+        new ApiResponse(200, {Users: users, TotalUsers: toalusers}, "All Users Retrieved Successfully")
+    )
+})
+
+const getSingleUser = asyncHandler(async (req, res) => {
+    const {username} = req.query;
+    const user = await User.findOne({username , role: { $ne: 'admin' } }).select("-password");
+    if (!user) {
+        const error = new ApiError(404, "User Not Found");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    return res.status(200).json(
+        new ApiResponse(200, user, "User Retrieved Successfully")
+    )
+})
+
+export { registerUser, loginUser, logoutUser, refereshAccessToken, changeCurrentPassword, getCurrentUser, upDateUserDetails, getUserProfile, deleteUserAccount, forgotPassword, resetPassword, verifyPasswordResetToken, getAllUsers , getSingleUser};
