@@ -41,6 +41,10 @@ const userSchema = new Schema({
         enum: ["user", "admin"],
         default: "user",
     },
+    city:{
+        type: String,
+        required: true
+    },
     passwordRefreshToken: {
         type: String,
     },

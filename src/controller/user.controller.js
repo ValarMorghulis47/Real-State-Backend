@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose"
 import { sendmail } from "../utils/SendEmail.js"
-import { ObjectId } from "bson"
+import mongoose from "mongoose";
 const generateTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -24,9 +24,9 @@ const generateTokens = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullname, username, email, password } = req.body;
+    const { fullname, username, email, password, city } = req.body;
     // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{5,}$/;
-    if ([fullname, username, email, password].some((field) => field?.trim() === "")) {
+    if ([fullname, username, email, password, city].some((field) => field?.trim() === "")) {
         const error = new ApiError(400, "All Fields Are Required");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -59,6 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
         email,
         username,
         password,
+        city,
         avatarPublicId: avatar.public_id,
     })
 
@@ -197,9 +198,9 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 const upDateUserDetails = asyncHandler(async (req, res) => {
-    const { fullname, email, username } = req.body;
+    const { fullname, email, username, city } = req.body;
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
-    if (!(fullname || email || username || avatarLocalPath)) {
+    if (!(fullname || email || username || avatarLocalPath || city)) {
         const error = new ApiError(410, "Atleast One Field Is Required To Update The Account");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -243,7 +244,8 @@ const upDateUserDetails = asyncHandler(async (req, res) => {
         $set: {
             fullname,   /*or we can write it as fullname: fullname, email: email, username: username */
             email,
-            username
+            username,
+            city
         }
     }, {
         new: true
@@ -262,7 +264,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
     const Profile = await User.aggregate([
         {
             $match: {
-                _id: new ObjectId(userId)
+                _id: mongoose.Types.ObjectId(userId)
             },
         },
         {
@@ -288,6 +290,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
                 username: 1,
                 email: 1,
                 password: 1,
+                city: 1,
             }
         }
     ])
