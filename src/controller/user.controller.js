@@ -5,7 +5,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { DeleteFileCloudinary } from "../utils/DeleteFileCloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
-import mongoose from "mongoose"
 import { sendmail } from "../utils/SendEmail.js"
 import mongoose from "mongoose";
 const generateTokens = async (userId) => {
@@ -24,9 +23,9 @@ const generateTokens = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullname, username, email, password, city } = req.body;
+    const { fullname, username, email, password, city, phoneno } = req.body;
     // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{5,}$/;
-    if ([fullname, username, email, password, city].some((field) => field?.trim() === "")) {
+    if ([fullname, username, email, password, city, phoneno].some((field) => field?.trim() === "")) {
         const error = new ApiError(400, "All Fields Are Required");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -44,9 +43,13 @@ const registerUser = asyncHandler(async (req, res) => {
         const error = new ApiError(408, "Username or Email Already Exists");
         return res.status(error.statusCode).json(error.toResponse());
     }
+    if (phoneno.length!==11) {
+        const error = new ApiError(403, "Length Of Phone Number Is Insufficient");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
     const avatarLocalPath = req.file?.path;
     if (!avatarLocalPath) {
-        const error = new ApiError(408, "Avatar File Is Required");
+        const error = new ApiError(428, "Avatar File Is Required");
         return res.status(error.statusCode).json(error.toResponse());
     }
     const avatarFolder = "avatar";
@@ -60,6 +63,7 @@ const registerUser = asyncHandler(async (req, res) => {
         username,
         password,
         city,
+        phoneno,
         avatarPublicId: avatar.public_id,
     })
 
@@ -198,9 +202,9 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 const upDateUserDetails = asyncHandler(async (req, res) => {
-    const { fullname, email, username, city } = req.body;
+    const { fullname, email, username, city, phoneno } = req.body;
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
-    if (!(fullname || email || username || avatarLocalPath || city)) {
+    if (!(fullname || email || username || avatarLocalPath || city || phoneno)) {
         const error = new ApiError(410, "Atleast One Field Is Required To Update The Account");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -235,7 +239,7 @@ const upDateUserDetails = asyncHandler(async (req, res) => {
             }
         }, {
             new: true
-        }).select("-password")
+        });
         if (previousPublicId) {
             await DeleteFileCloudinary(previousPublicId, avatarFolder);
         }
@@ -245,7 +249,8 @@ const upDateUserDetails = asyncHandler(async (req, res) => {
             fullname,   /*or we can write it as fullname: fullname, email: email, username: username */
             email,
             username,
-            city
+            city,
+            phoneno
         }
     }, {
         new: true
@@ -291,6 +296,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
                 email: 1,
                 password: 1,
                 city: 1,
+                phoneno: 1,
             }
         }
     ])

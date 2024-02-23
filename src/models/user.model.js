@@ -45,6 +45,12 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    phoneno: {
+        type: String,
+        required: true,
+        minlength: 11,
+        maxlength: 11
+    },
     passwordRefreshToken: {
         type: String,
     },
