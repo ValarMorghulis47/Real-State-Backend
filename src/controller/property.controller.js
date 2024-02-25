@@ -106,16 +106,45 @@ const deleteProperty = asyncHandler(async (req, res, next) => {
 
 const getProperties = asyncHandler(async (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
-    const properties = await Property.find().limit(limit * 1).skip((page - 1) * limit);
+
+    const properties = await Property.aggregate([
+        {
+            $lookup: {
+                from: "users", // Name of the User collection
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $project: {
+                username: 1,
+                avatar: 1,
+                // Include other property fields you need
+                owner: {
+                    $arrayElemAt: ["$ownerDetails", 0]
+                }
+            }
+        },
+        {
+            $limit: limit * 1
+        },
+        {
+            $skip: (page - 1) * limit
+        }
+    ]);
+
     const totalProperties = await Property.countDocuments();
+
     if (!properties.length) {
         const error = new ApiError(404, "Properties not found");
         return res.status(error.statusCode).json(error.toResponse());
     }
+
     return res.status(200).json(
         new ApiResponse(200, { properties: properties, totalProperties: totalProperties }, "Properties Fetched Successfully")
-    )
-})
+    );
+});
 
 const getSingleProperty = asyncHandler(async (req, res, next) => {
     const { propertyId } = req.params;

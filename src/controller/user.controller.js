@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import { sendmail } from "../utils/SendEmail.js"
 import mongoose from "mongoose";
+import { Property } from "../models/property.model.js"
 const generateTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -269,27 +270,27 @@ const getUserProfile = asyncHandler(async (req, res) => {
     const Profile = await User.aggregate([
         {
             $match: {
-                _id: mongoose.Types.ObjectId(userId)
+                _id: mongoose.Types.ObjectId.createFromHexString(userId)
             },
         },
         {
             $lookup: {
-                from: "posts",
+                from: "properties",
                 localField: "_id",
-                foreignField: "author",
-                as: "userDetails"
+                foreignField: "owner",
+                as: "propertyDetails"
             }
         },
         {
             $addFields: {
-                TotalPosts: {
-                    $size: "$userDetails"
+                TotalProperties: {
+                    $size: "$propertyDetails"
                 }
             }
         },
         {
             $project: {
-                TotalPosts: 1,
+                TotalProperties: 1,
                 fullname: 1,
                 avatar: 1,
                 username: 1,
@@ -320,29 +321,18 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
     if (previousAvatarPublicId) {
         await DeleteFileCloudinary(previousAvatarPublicId, avatarFolder);
     }
-    // Delete user's posts and their images
-    const posts = await Post.find({ author: req.user?._id });
-    if (posts?.length) {
-        posts.forEach(async (post) => {
-            const postImagePublicId = post.imagePublicId;
-            const postImageFolder = "post";
-            if (postImagePublicId) {
-                await DeleteFileCloudinary(postImagePublicId, postImageFolder);
-            }
+    // Delete user's properties and their images
+    const properties = await Property.find({ owner: req.user?._id });
+    if (properties?.length) {
+        properties.forEach(async (property) => {
+            const propertyImagePublicId = property.imagePublicId;
+            propertyImagePublicId.forEach(async (imagePublicId) => {
+                console.log("I am deleting the image");
+                await DeleteFileCloudinary(imagePublicId, "property");
+            });
         });
     }
-    // The method written below is also correct but we dont need async because for of loop does not gives us callback functions. THe loops that gives us callback functions we need to use the async keyword.
-    // const posts = await Post.find({ author: req.user?._id });
-    // if (posts?.length) {
-    // for (const post of posts) {
-    //     const postImagePublicId = post.imagePublicId;
-    //     const postImageFolder = "post";
-    //     if (postImagePublicId) {
-    //         await DeleteFileCloudinary(postImagePublicId, postImageFolder);
-    //     }
-    // }
-    // }
-    await Post.deleteMany({ author: req.user?._id });
+    await Property.deleteMany({ owner: req.user?._id });
 
     await User.findByIdAndDelete(req.user?._id);
     return res.status(200).json(
