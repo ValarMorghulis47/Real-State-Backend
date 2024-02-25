@@ -105,7 +105,7 @@ const deleteProperty = asyncHandler(async (req, res, next) => {
 });
 
 const getProperties = asyncHandler(async (req, res, next) => {
-    const {page=1, limit=10} = req.query;
+    const { page = 1, limit = 10 } = req.query;
     const properties = await Property.find().limit(limit * 1).skip((page - 1) * limit);
     const totalProperties = await Property.countDocuments();
     if (!properties.length) {
@@ -113,14 +113,61 @@ const getProperties = asyncHandler(async (req, res, next) => {
         return res.status(error.statusCode).json(error.toResponse());
     }
     return res.status(200).json(
-        new ApiResponse(200, {properties: properties, totalProperties: totalProperties}, "Properties Fetched Successfully")
+        new ApiResponse(200, { properties: properties, totalProperties: totalProperties }, "Properties Fetched Successfully")
     )
 })
 
 const getSingleProperty = asyncHandler(async (req, res, next) => {
     const { propertyId } = req.params;
-    const property = await Property.findById(propertyId);
-    if (!property) {
+    const propertyexits = await Property.findById(propertyId);
+    if (!propertyexits) {
+        const error = new ApiError(404, "Property not found");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    const property = await Property.aggregate(
+        [
+            {
+                $match: {
+                    _id: mongoose.Types.ObjectId.createFromHexString(propertyId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "ownerDetails",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                avatar: 1,
+                                phoneno: 1,
+                                city: 1,
+                                email: 1,
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    ownerDetails: {
+                        $first: "$ownerDetails"
+                    }
+                }
+            },
+            {
+                $project: {
+                    ownerDetails: 1,
+                    title: 1,
+                    description: 1,
+                    image: 1
+                }
+            }
+        ]
+    )
+    if (!property.length) {
         const error = new ApiError(404, "Property not found");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -129,4 +176,4 @@ const getSingleProperty = asyncHandler(async (req, res, next) => {
     )
 })
 
-export {createProperty, updateProperty, deleteProperty, getProperties}
+export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty }
