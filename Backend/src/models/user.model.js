@@ -18,19 +18,15 @@ const userSchema = new Schema({
         trim: true,
         unique: true
     },
-    fullname: {
-        type: String,
-        required: true,
-        trim: true,
-        index: true
-    },
     avatarPublicId: {
         type: String,
         required: true,
+        default: "12345"
     },
     avatar: {
         type: String, // Cloudinary URL
         required: true,
+        default: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUhvgMYGOcSZXmbHOuSP4a84MTXAYC_vzD6-0-d9exhg&s"
     },
     password: {
         type: String,
@@ -40,16 +36,6 @@ const userSchema = new Schema({
         type: String,
         enum: ["user", "admin"],
         default: "user",
-    },
-    city:{
-        type: String,
-        required: true
-    },
-    phoneno: {
-        type: String,
-        required: true,
-        minlength: 11,
-        maxlength: 11
     },
     passwordRefreshToken: {
         type: String,
