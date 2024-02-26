@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
 
 export default function Header() {
-  const { currentUser } = useSelector((state) => state.user);
+  const  currentUser  = useSelector((state) => state.user.currentUser);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const handleSubmit = (e) => {
@@ -61,7 +61,7 @@ export default function Header() {
             {currentUser ? (
               <img
                 className='rounded-full h-7 w-7 object-cover'
-                src={currentUser.avatar}
+                src={currentUser.data.user.avatar}
                 alt='profile'
               />
             ) : (
