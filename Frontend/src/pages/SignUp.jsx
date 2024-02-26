@@ -14,7 +14,6 @@ export default function SignUp() {
   const loading  = useSelector((state) => state.user.loading);
   const signup = async (data1) => {
     try {
-      console.log(data1);
       dispatch(signUpStart());
       const formData = new FormData();
       formData.append('username', data1.username);
@@ -27,8 +26,7 @@ export default function SignUp() {
       });
       if (!userData.ok) {
         const error = await userData.json();
-        console.log(error);
-        dispatch(signUpFailure(error.error.message));
+        dispatch(signUpFailure());
         setError(error.error.message);
         return;
       }
@@ -36,7 +34,7 @@ export default function SignUp() {
       setSuccess(true);
       reset();
     } catch (error) {
-      dispatch(signUpFailure(error.message));
+      dispatch(signUpFailure());
       setError(error.message);
     }
   };
@@ -46,6 +44,7 @@ export default function SignUp() {
         const timer = setTimeout(() => {
             setShowMessage(false);
             setSuccess("");
+            setError("");
         }, 3000); // Change this value to adjust the time
 
         return () => clearTimeout(timer); // This will clear the timer if the component unmounts before the timer finishes

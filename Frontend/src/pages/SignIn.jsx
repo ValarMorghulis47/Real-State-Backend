@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from "react-hook-form"
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,6 +11,8 @@ import OAuth from '../components/OAuth';
 
 export default function SignIn() {
   const { loading, error } = useSelector((state) => state.user);
+  const [showMessage, setShowMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const { register, handleSubmit} = useForm()
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -25,17 +27,29 @@ export default function SignIn() {
         body: JSON.stringify(data1),
         credentials: 'include'
       });
+      const data = await userData.json();
       if (!userData.ok) {
-        dispatch(signInFailure(data.message));
+        dispatch(signInFailure());
+        setErrorMessage(data.error.message);
         return;
       }
-      const data = await userData.json();
       dispatch(signInSuccess(data));
       navigate('/');
     } catch (error) {
-      dispatch(signInFailure(error.message));
+      dispatch(signInFailure());
+      setErrorMessage(error.message);
     }
   };
+  useEffect(() => {
+    if (error) {
+        setShowMessage(true);
+        const timer = setTimeout(() => {
+            setShowMessage(false);
+        }, 3000); // Change this value to adjust the time
+
+        return () => clearTimeout(timer); // This will clear the timer if the component unmounts before the timer finishes
+    }
+}, [error]);
   return (
     <div className='p-3 max-w-lg mx-auto'>
       <h1 className='text-3xl text-center font-semibold my-7'>Sign In</h1>
@@ -75,7 +89,7 @@ export default function SignIn() {
           <span className='text-blue-700'>Sign up</span>
         </Link>
       </div>
-      {error && <p className='text-red-500 mt-5'>{error}</p>}
+      {showMessage && error && <p className='text-red-500 mt-5'>{errorMessage}</p>}
     </div>
   );
 }
