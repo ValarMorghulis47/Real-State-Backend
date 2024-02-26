@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from "react-hook-form"
 import { useDispatch, useSelector } from 'react-redux';
 import {
   signInStart,
@@ -9,33 +10,26 @@ import {
 import OAuth from '../components/OAuth';
 
 export default function SignIn() {
-  const [formData, setFormData] = useState({});
   const { loading, error } = useSelector((state) => state.user);
+  const { register, handleSubmit} = useForm()
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.id]: e.target.value,
-    });
-  };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const signin = async (data1) => {
     try {
       dispatch(signInStart());
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
+      const userData = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/users/login`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data1),
+        credentials: 'include'
       });
-      const data = await res.json();
-      console.log(data);
-      if (data.success === false) {
+      if (!userData.ok) {
         dispatch(signInFailure(data.message));
         return;
       }
+      const data = await userData.json();
       dispatch(signInSuccess(data));
       navigate('/');
     } catch (error) {
@@ -45,20 +39,26 @@ export default function SignIn() {
   return (
     <div className='p-3 max-w-lg mx-auto'>
       <h1 className='text-3xl text-center font-semibold my-7'>Sign In</h1>
-      <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
+      <form onSubmit={handleSubmit(signin)} className='flex flex-col gap-4'>
         <input
           type='email'
           placeholder='email'
           className='border p-3 rounded-lg'
           id='email'
-          onChange={handleChange}
+          {...register("email", {
+            required: true,
+            validate: {
+              matchPatern: (value) => /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value) ||
+                "Email address must be a valid address",
+            }
+          })}
         />
         <input
           type='password'
           placeholder='password'
           className='border p-3 rounded-lg'
           id='password'
-          onChange={handleChange}
+          {...register("password")}
         />
 
         <button
@@ -67,7 +67,7 @@ export default function SignIn() {
         >
           {loading ? 'Loading...' : 'Sign In'}
         </button>
-        <OAuth/>
+        <OAuth />
       </form>
       <div className='flex gap-2 mt-5'>
         <p>Dont have an account?</p>
