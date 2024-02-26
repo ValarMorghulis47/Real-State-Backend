@@ -24,9 +24,9 @@ const generateTokens = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullname, username, email, password, city, phoneno } = req.body;
+    const {username, email, password} = req.body;
     // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{5,}$/;
-    if ([fullname, username, email, password, city, phoneno].some((field) => field?.trim() === "")) {
+    if ([username, email, password].some((field) => field?.trim() === "")) {
         const error = new ApiError(400, "All Fields Are Required");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -44,10 +44,6 @@ const registerUser = asyncHandler(async (req, res) => {
         const error = new ApiError(408, "Username or Email Already Exists");
         return res.status(error.statusCode).json(error.toResponse());
     }
-    if (phoneno.length!==11) {
-        const error = new ApiError(403, "Length Of Phone Number Is Insufficient");
-        return res.status(error.statusCode).json(error.toResponse());
-    }
     const avatarLocalPath = req.file?.path;
     if (!avatarLocalPath) {
         const error = new ApiError(428, "Avatar File Is Required");
@@ -58,13 +54,10 @@ const registerUser = asyncHandler(async (req, res) => {
         uploadOnCloudinary(avatarLocalPath, avatarFolder),
     ]);
     const user = await User.create({
-        fullname,
         avatar: avatar.url,
         email,
         username,
         password,
-        city,
-        phoneno,
         avatarPublicId: avatar.public_id,
     })
 
