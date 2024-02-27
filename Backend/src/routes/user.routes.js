@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { changeCurrentPassword, deleteUserAccount, forgotPassword, getAllUsers, getCurrentUser, getSingleUser, getUserProfile, loginUser, logoutUser, refereshAccessToken, registerUser, resetPassword, upDateUserDetails, verifyPasswordResetToken } from "../controller/user.controller.js"
+import { changeCurrentPassword, deleteUserAccount, forgotPassword, getAllUsers, getCurrentUser, getSingleUser, getUserProfile, googleOAuth, loginUser, logoutUser, refereshAccessToken, registerUser, resetPassword, upDateUserDetails, verifyPasswordResetToken } from "../controller/user.controller.js"
 import { upload } from "../middlewares/multer.middleware.js"
 import { isAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -15,6 +15,7 @@ const router = Router();
 //     registerUser
 // )
 router.route("/register").post(upload.single("avatar"), registerUser)
+router.route("/google/register-login").post(googleOAuth)
 router.route("/login").post(loginUser);
 //secured routes
 router.route("/logout").get(verifyJWT, logoutUser);

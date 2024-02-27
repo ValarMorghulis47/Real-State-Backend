@@ -29,8 +29,7 @@ const userSchema = new Schema({
         default: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUhvgMYGOcSZXmbHOuSP4a84MTXAYC_vzD6-0-d9exhg&s"
     },
     password: {
-        type: String,
-        required: [true, "Password Is Required"],
+        type: String
     },
     role: {
         type: String,

@@ -73,6 +73,56 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 })
 
+const googleOAuth = asyncHandler(async (req, res) => {
+    const { name, email, photo } = req.body;
+    if ([name, email, photo].some((field) => field?.trim() === "")) {
+        const error = new ApiError(400, "All Fields Are Required");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    const existedUser = await User.findOne({ email });
+    if (existedUser) {
+        const { accessToken, refreshToken } = await generateTokens(existedUser._id);
+        const loggedinuser = await User.findById(existedUser._id).select("-password");
+        const options = {
+            httpOnly: true,
+            path: '/',
+        };
+        return res.status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(
+                new ApiResponse(200, {
+                    user: loggedinuser, accessToken, refreshToken
+                }, "User Logged In Successfully")
+            )
+    }
+    const user = await User.create({
+        avatar: photo,
+        email,
+        username: name,
+    })
+    const createdUser = await User.findById(user._id).select(
+        "-password"
+    )
+    if (!createdUser) {
+        const error = new ApiError(500, "Something went wrong while registring the user");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    const { accessToken, refreshToken } = await generateTokens(createdUser._id);
+    const options = {
+        httpOnly: true,
+        path: '/',
+    };
+    return res.status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(200, {
+                user: createdUser, accessToken, refreshToken
+            }, "User Logged In Successfully")
+        )
+})
+
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     if ([email, password].some((field) => field?.trim() === "")) {
@@ -448,4 +498,4 @@ const getSingleUser = asyncHandler(async (req, res) => {
     )
 })
 
-export { registerUser, loginUser, logoutUser, refereshAccessToken, changeCurrentPassword, getCurrentUser, upDateUserDetails, getUserProfile, deleteUserAccount, forgotPassword, resetPassword, verifyPasswordResetToken, getAllUsers , getSingleUser};
+export { registerUser, googleOAuth , loginUser, logoutUser, refereshAccessToken, changeCurrentPassword, getCurrentUser, upDateUserDetails, getUserProfile, deleteUserAccount, forgotPassword, resetPassword, verifyPasswordResetToken, getAllUsers , getSingleUser};
