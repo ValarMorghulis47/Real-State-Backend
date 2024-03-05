@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken"
 import { sendmail } from "../utils/SendEmail.js"
 import mongoose from "mongoose";
 import { Property } from "../models/property.model.js"
+import bcrypt from "bcrypt";
 const generateTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -24,7 +25,7 @@ const generateTokens = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-    const {username, email, password} = req.body;
+    const { username, email, password } = req.body;
     // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{5,}$/;
     if ([username, email, password].some((field) => field?.trim() === "")) {
         const error = new ApiError(400, "All Fields Are Required");
@@ -96,11 +97,27 @@ const googleOAuth = asyncHandler(async (req, res) => {
                 }, "User Logged In Successfully")
             )
     }
+
+    const saltRounds = 10;
+    const password = generateRandomPassword();
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const user = await User.create({
         avatar: photo,
         email,
         username: name,
-    })
+        password: hashedPassword,
+    });
+
+    function generateRandomPassword() {
+        const length = 8;
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let retVal = "";
+        for (let i = 0, n = charset.length; i < length; ++i) {
+            retVal += charset.charAt(Math.floor(Math.random() * n));
+        }
+        return retVal;
+    }
     const createdUser = await User.findById(user._id).select(
         "-password"
     )
@@ -246,13 +263,21 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 })
 
 const upDateUserDetails = asyncHandler(async (req, res) => {
-    const { fullname, email, username, city, phoneno } = req.body;
-    const avatarLocalPath = req.files?.avatar?.[0]?.path;
-    if (!(fullname || email || username || avatarLocalPath || city || phoneno)) {
+    const { email, username } = req.body;
+    const avatarLocalPath = req.file?.path;
+    if (!(req.body?.password || email || username || avatarLocalPath || req.body?.confirmpassword)) {
         const error = new ApiError(410, "Atleast One Field Is Required To Update The Account");
         return res.status(error.statusCode).json(error.toResponse());
     }
+    if (req.body?.password !== req.body?.confirmpassword) {
+        const error = new ApiError(406, "Passwords Do Not Match");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
     const currentUser = await User.findById(req.user._id);
+    if (req.body.password) {
+        currentUser.password = req.body.password;
+        await currentUser.save({ ValidateBeforeSave: false });
+    }
     if (username && username !== currentUser.username) {
         const existingUser = await User.findOne({ username });
         if (existingUser) {
@@ -290,11 +315,8 @@ const upDateUserDetails = asyncHandler(async (req, res) => {
     }
     const user = await User.findByIdAndUpdate(req.user?._id, {
         $set: {
-            fullname,   /*or we can write it as fullname: fullname, email: email, username: username */
             email,
             username,
-            city,
-            phoneno
         }
     }, {
         new: true
@@ -370,7 +392,6 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
         properties.forEach(async (property) => {
             const propertyImagePublicId = property.imagePublicId;
             propertyImagePublicId.forEach(async (imagePublicId) => {
-                console.log("I am deleting the image");
                 await DeleteFileCloudinary(imagePublicId, "property");
             });
         });
@@ -474,7 +495,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
 //Admin Controllers
 const getAllUsers = asyncHandler(async (req, res) => {
-    const { page=1, limit=10 } = req.query;
+    const { page = 1, limit = 10 } = req.query;
     const users = await User.find({ role: { $ne: 'admin' } }).select("-password").limit(limit * 1).skip((page - 1) * limit);
     const toalusers = await User.countDocuments({ role: { $ne: 'admin' } });
     if (!users?.length) {
@@ -482,13 +503,13 @@ const getAllUsers = asyncHandler(async (req, res) => {
         return res.status(error.statusCode).json(error.toResponse());
     }
     return res.status(200).json(
-        new ApiResponse(200, {Users: users, TotalUsers: toalusers}, "All Users Retrieved Successfully")
+        new ApiResponse(200, { Users: users, TotalUsers: toalusers }, "All Users Retrieved Successfully")
     )
 })
 
 const getSingleUser = asyncHandler(async (req, res) => {
-    const {username} = req.query;
-    const user = await User.findOne({username , role: { $ne: 'admin' } }).select("-password");
+    const { username } = req.query;
+    const user = await User.findOne({ username, role: { $ne: 'admin' } }).select("-password");
     if (!user) {
         const error = new ApiError(404, "User Not Found");
         return res.status(error.statusCode).json(error.toResponse());
@@ -498,4 +519,4 @@ const getSingleUser = asyncHandler(async (req, res) => {
     )
 })
 
-export { registerUser, googleOAuth , loginUser, logoutUser, refereshAccessToken, changeCurrentPassword, getCurrentUser, upDateUserDetails, getUserProfile, deleteUserAccount, forgotPassword, resetPassword, verifyPasswordResetToken, getAllUsers , getSingleUser};
+export { registerUser, googleOAuth, loginUser, logoutUser, refereshAccessToken, changeCurrentPassword, getCurrentUser, upDateUserDetails, getUserProfile, deleteUserAccount, forgotPassword, resetPassword, verifyPasswordResetToken, getAllUsers, getSingleUser };

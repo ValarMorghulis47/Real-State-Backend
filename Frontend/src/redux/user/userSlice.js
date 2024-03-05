@@ -10,6 +10,9 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
+    updateError: (state, action) => {
+      state.error = false;
+    },
     signUpStart: (state) => {
       state.loading = true;
     },
@@ -73,6 +76,7 @@ const userSlice = createSlice({
 });
 
 export const {
+  updateError,
   signUpStart,
   signUpSuccess,
   signUpFailure,

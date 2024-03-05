@@ -25,7 +25,7 @@ router.route("/verify-token/:token").patch(verifyPasswordResetToken);
 router.route("/reset-password/:token").patch(resetPassword);
 router.route("/change-password").patch(verifyJWT, changeCurrentPassword)
 router.route("/currentuser").get(verifyJWT, getCurrentUser)
-router.route("/update-account").patch(verifyJWT, upload.fields("avatar"), upDateUserDetails)
+router.route("/update-account").patch(verifyJWT, upload.single("avatar"), upDateUserDetails)
 router.route("/profile/:userId").get(verifyJWT, getUserProfile)
 router.route("/delete-account").delete(verifyJWT, deleteUserAccount)
 //Admin routes

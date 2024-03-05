@@ -1,13 +1,8 @@
 import { useSelector } from 'react-redux';
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm } from "react-hook-form";
 import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from 'firebase/storage';
-import { app } from '../firebase';
-import {
+  updateError,
   updateUserStart,
   updateUserSuccess,
   updateUserFailure,
@@ -19,75 +14,55 @@ import {
 import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 export default function Profile() {
-  const fileRef = useRef(null);
   const { currentUser, loading, error } = useSelector((state) => state.user);
-  const [file, setFile] = useState(undefined);
-  const [filePerc, setFilePerc] = useState(0);
-  const [fileUploadError, setFileUploadError] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [showMessage, setShowMessage] = useState(false);
+  const [passError, setPassError] = useState('');
+  const [initialUsername, setInitialUsername] = useState(null);
+  const [initialEmail, setInitialEmail] = useState(null);
+  const { register, handleSubmit } = useForm()
+  const [fileName, setFileName] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [showListingsError, setShowListingsError] = useState(false);
   const [userListings, setUserListings] = useState([]);
   const dispatch = useDispatch();
 
-  // firebase storage
-  // allow read;
-  // allow write: if
-  // request.resource.size < 2 * 1024 * 1024 &&
-  // request.resource.contentType.matches('image/.*')
-
   useEffect(() => {
-    if (file) {
-      handleFileUpload(file);
+    if (currentUser) {
+      setInitialUsername(currentUser.data?.user.username);
+      setInitialEmail(currentUser.data?.user.email);
     }
-  }, [file]);
+  }, [])
 
-  const handleFileUpload = (file) => {
-    const storage = getStorage(app);
-    const fileName = new Date().getTime() + file.name;
-    const storageRef = ref(storage, fileName);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setFilePerc(Math.round(progress));
-      },
-      (error) => {
-        setFileUploadError(true);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) =>
-          setFormData({ ...formData, avatar: downloadURL })
-        );
-      }
-    );
-  };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const update = async (data) => {
     try {
+      const formdata = new FormData();
       dispatch(updateUserStart());
-      const res = await fetch(`/api/user/update/${currentUser._id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      if (initialUsername !== data?.username) {
+        formdata.append('username', data.username);
+      }
+      if (initialEmail !== data?.email) {
+        formdata.append('email', data.email);
+      }
+      if (data?.password) {
+        formdata.append('password', data.password);
+      }
+      if (data?.confirmpassword) {
+        formdata.append('confirmpassword', data.confirmpassword);
+      }
+      if (data?.avatar[0]) {
+        formdata.append('avatar', data.avatar[0]);
+      }
+      const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/users/update-account`, {
+        method: 'PATCH',
+        body: formdata,
+        credentials: 'include',
       });
-      const data = await res.json();
-      if (data.success === false) {
-        dispatch(updateUserFailure(data.message));
+      const response = await res.json();
+      if (response.error.success === false) {
+        dispatch(updateUserFailure(response.error.message));
         return;
       }
-
-      dispatch(updateUserSuccess(data));
+      dispatch(updateUserSuccess(response.data));
       setUpdateSuccess(true);
     } catch (error) {
       dispatch(updateUserFailure(error.message));
@@ -97,8 +72,9 @@ export default function Profile() {
   const handleDeleteUser = async () => {
     try {
       dispatch(deleteUserStart());
-      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/users/delete-account`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       const data = await res.json();
       if (data.success === false) {
@@ -114,7 +90,10 @@ export default function Profile() {
   const handleSignOut = async () => {
     try {
       dispatch(signOutUserStart());
-      const res = await fetch('/api/auth/signout');
+      const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/users/logout`, {
+        method: 'GET',
+        credentials: 'include',
+      });
       const data = await res.json();
       if (data.success === false) {
         dispatch(deleteUserFailure(data.message));
@@ -149,7 +128,6 @@ export default function Profile() {
       });
       const data = await res.json();
       if (data.success === false) {
-        console.log(data.message);
         return;
       }
 
@@ -157,61 +135,87 @@ export default function Profile() {
         prev.filter((listing) => listing._id !== listingId)
       );
     } catch (error) {
-      console.log(error.message);
     }
   };
+
+  useEffect(() => {
+    if (error) {
+      setShowMessage(true);
+      const timer = setTimeout(() => {
+        setShowMessage(false);
+        dispatch(updateError());
+      }, 3000); // Change this value to adjust the time
+
+      return () => clearTimeout(timer); // This will clear the timer if the component unmounts before the timer finishes
+    }
+  }, [error]);
+
+
   return (
     <div className='p-3 max-w-lg mx-auto'>
       <h1 className='text-3xl font-semibold text-center my-7'>Profile</h1>
-      <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
-        <input
-          onChange={(e) => setFile(e.target.files[0])}
-          type='file'
-          ref={fileRef}
-          hidden
-          accept='image/*'
-        />
+      <form onSubmit={handleSubmit(update)} className='flex flex-col gap-4' encType='multipart/form-data'>
         <img
-          onClick={() => fileRef.current.click()}
-          src={formData.avatar || currentUser.avatar}
+          // onClick={() => fileRef.current.click()}
+          src={currentUser.data?.user.avatar}
           alt='profile'
           className='rounded-full h-24 w-24 object-cover cursor-pointer self-center mt-2'
         />
-        <p className='text-sm self-center'>
-          {fileUploadError ? (
-            <span className='text-red-700'>
-              Error Image upload (image must be less than 2 mb)
-            </span>
-          ) : filePerc > 0 && filePerc < 100 ? (
-            <span className='text-slate-700'>{`Uploading ${filePerc}%`}</span>
-          ) : filePerc === 100 ? (
-            <span className='text-green-700'>Image successfully uploaded!</span>
-          ) : (
-            ''
-          )}
-        </p>
+        <div className='mx-auto'>
+          <label htmlFor="avatar">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="36"
+              height="36"
+              fill="currentColor"
+              className="bi bi-camera cursor-pointer mx-auto"
+              viewBox="0 0 16 16"
+            >
+              <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z" />
+              <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0" />
+            </svg>
+            {fileName && <span>{fileName}</span>}
+          </label>
+          <input
+            type="file"
+            id="avatar"
+            style={{ display: "none" }}
+            accept="image/*"
+            {...register("avatar")}
+            // onChange={(e) => {
+            //   setFileName(e.target.files[0].name);
+            // }}
+          />
+        </div>
         <input
           type='text'
           placeholder='username'
-          defaultValue={currentUser.username}
+          defaultValue={currentUser.data?.user.username}
           id='username'
           className='border p-3 rounded-lg'
-          onChange={handleChange}
+          {...register("username")}
         />
         <input
           type='email'
           placeholder='email'
           id='email'
-          defaultValue={currentUser.email}
+          defaultValue={currentUser.data?.user.email}
           className='border p-3 rounded-lg'
-          onChange={handleChange}
+          {...register("email")}
         />
         <input
           type='password'
-          placeholder='password'
-          onChange={handleChange}
+          placeholder='New Password'
           id='password'
           className='border p-3 rounded-lg'
+          {...register("password")}
+        />
+        <input
+          type='password'
+          placeholder='Confirm Password'
+          id='confpassword'
+          className='border p-3 rounded-lg'
+          {...register("confirmpassword")}
         />
         <button
           disabled={loading}
@@ -238,10 +242,11 @@ export default function Profile() {
         </span>
       </div>
 
-      <p className='text-red-700 mt-5'>{error ? error : ''}</p>
-      <p className='text-green-700 mt-5'>
-        {updateSuccess ? 'User is updated successfully!' : ''}
-      </p>
+      {showMessage && error && <p className='text-red-700 mt-5'>{error}</p>}
+      {/* {showMessage && passError && <p className='text-red-700 mt-5'>{passError}</p>} */}
+      {showMessage && updateSuccess && <p className='text-green-700 mt-5'>
+        'User is updated successfully!'
+      </p>}
       <button onClick={handleShowListings} className='text-green-700 w-full'>
         Show Listings
       </button>
