@@ -9,17 +9,19 @@ import mongoose from "mongoose";
 
 
 const createProperty = asyncHandler(async (req, res, next) => {
-    const { title, description } = req.body;
+    const { title, description, address, regularPrice, discountPrice, type, parking, furnished, offer, beds, baths } = req.body;
     const images = req.files.map(file => file.path); // Get an array of image paths
-    console.log(images);
-    if ([title, description, ...images].some((field) => field?.trim() === "")) {
+    if ([title, description, address].some((field) => field?.trim() === "")) {
+        const error = new ApiError(410, "Title, Description and Address are required");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    if ([regularPrice, discountPrice, type, parking, furnished, offer, beds, baths, ...images].some((field) => field?.trim() === "")) {
         const error = new ApiError(410, "All fields are required");
         return res.status(error.statusCode).json(error.toResponse());
     }
 
     const propertyFolder = "property";
     const imageUploadPromises = images.map(image => uploadOnCloudinary(image, propertyFolder)); // Upload images to Cloudinary
-    console.log(imageUploadPromises);
     const uploadedImages = await Promise.all(imageUploadPromises);
     const imageUrls = uploadedImages.map(image => image.url); // Get an array of image URLs
     const imagePublicIds = uploadedImages.map(image => image.public_id); // Get an array of image public IDs
@@ -30,6 +32,15 @@ const createProperty = asyncHandler(async (req, res, next) => {
         owner: req.user._id,
         image: imageUrls, // Store the image URLs in the 'images' field
         imagePublicId: imagePublicIds, // Store the image public IDs in the 'imagesPublicIds' field
+        address,
+        regularPrice,
+        discountPrice,
+        type,
+        parking,
+        furnished,
+        offer,
+        beds,
+        baths
     });
 
     if (!property) {
