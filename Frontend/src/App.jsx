@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Home from './pages/Home';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
@@ -10,8 +12,34 @@ import CreateListing from './pages/CreateListing';
 import UpdateListing from './pages/UpdateListing';
 import Listing from './pages/Listing';
 import Search from './pages/Search';
+import { setInitialFetchDone, signInFailure, signInStart, signInSuccess } from './redux/user/userSlice';
 
 export default function App() {
+  const dispatch = useDispatch()
+  const { LoggedIn } = useSelector((state) => state.user);
+  const fetchCurrentUser = async () => {
+    try {
+      dispatch(signInStart());
+      const response = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/users/currentuser`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        dispatch(signInSuccess(userData.data));
+      } else {
+        dispatch(signInFailure());
+      }
+    } catch (error) {
+      // Handle errors here
+      dispatch(signInFailure());
+    } finally {
+      dispatch(setInitialFetchDone());
+    }
+  };
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [LoggedIn, dispatch]);
   return (
     <BrowserRouter>
       <Header />

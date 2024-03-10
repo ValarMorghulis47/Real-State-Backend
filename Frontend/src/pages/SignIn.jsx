@@ -4,8 +4,8 @@ import { useForm } from "react-hook-form"
 import { useDispatch, useSelector } from 'react-redux';
 import {
   signInStart,
-  signInSuccess,
   signInFailure,
+  toggleLoggedIn
 } from '../redux/user/userSlice';
 import OAuth from '../components/OAuth';
 
@@ -33,7 +33,7 @@ export default function SignIn() {
         setErrorMessage(data.error.message);
         return;
       }
-      dispatch(signInSuccess(data));
+      dispatch(toggleLoggedIn());
       navigate('/');
     } catch (error) {
       dispatch(signInFailure());

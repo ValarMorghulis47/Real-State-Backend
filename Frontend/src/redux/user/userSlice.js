@@ -4,6 +4,8 @@ const initialState = {
   currentUser: null,
   error: false,
   loading: false,
+  initialFetchDone: false,
+  LoggedIn: false,
 };
 
 const userSlice = createSlice({
@@ -12,6 +14,12 @@ const userSlice = createSlice({
   reducers: {
     updateError: (state, action) => {
       state.error = false;
+    },
+    toggleLoggedIn: (state) => {
+      state.LoggedIn = !state.LoggedIn;
+    },
+    setInitialFetchDone: (state) => {
+      state.initialFetchDone = true;
     },
     signUpStart: (state) => {
       state.loading = true;
@@ -77,6 +85,8 @@ const userSlice = createSlice({
 
 export const {
   updateError,
+  setInitialFetchDone,
+  toggleLoggedIn,
   signUpStart,
   signUpSuccess,
   signUpFailure,

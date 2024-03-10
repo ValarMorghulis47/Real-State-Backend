@@ -16,10 +16,9 @@ import { Link } from 'react-router-dom';
 export default function Profile() {
   const { currentUser, loading, error } = useSelector((state) => state.user);
   const [showMessage, setShowMessage] = useState(false);
-  const [passError, setPassError] = useState('');
   const [initialUsername, setInitialUsername] = useState(null);
   const [initialEmail, setInitialEmail] = useState(null);
-  const { register, handleSubmit } = useForm()
+  const { register, handleSubmit, reset} = useForm()
   const [fileName, setFileName] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [showListingsError, setShowListingsError] = useState(false);
@@ -28,10 +27,10 @@ export default function Profile() {
 
   useEffect(() => {
     if (currentUser) {
-      setInitialUsername(currentUser.data?.user.username);
-      setInitialEmail(currentUser.data?.user.email);
+      setInitialUsername(currentUser?.username || currentUser?.user.username);
+      setInitialEmail(currentUser?.email || currentUser?.user.email);
     }
-  }, [])
+  }, [currentUser])
 
   const update = async (data) => {
     try {
@@ -57,11 +56,12 @@ export default function Profile() {
         body: formdata,
         credentials: 'include',
       });
-      const response = await res.json();
-      if (response.error.success === false) {
-        dispatch(updateUserFailure(response.error.message));
+      if (!res.ok) {
+        const error = await res.json();
+        dispatch(updateUserFailure(error.error.message));
         return;
       }
+      const response = await res.json();
       dispatch(updateUserSuccess(response.data));
       setUpdateSuccess(true);
     } catch (error) {
@@ -148,7 +148,21 @@ export default function Profile() {
 
       return () => clearTimeout(timer); // This will clear the timer if the component unmounts before the timer finishes
     }
-  }, [error]);
+    if (updateSuccess) {
+      reset({
+        password: '',
+        confirmpassword: '',
+      });
+      setShowMessage(true);
+      const timer = setTimeout(() => {
+        setShowMessage(false);
+        setUpdateSuccess(false);
+      }, 3000); // Change this value to adjust the time
+
+      return () => clearTimeout(timer); // This will clear the timer if the component unmounts before the timer finishes
+
+    }
+  }, [error, updateSuccess]);
 
 
   return (
@@ -156,8 +170,7 @@ export default function Profile() {
       <h1 className='text-3xl font-semibold text-center my-7'>Profile</h1>
       <form onSubmit={handleSubmit(update)} className='flex flex-col gap-4' encType='multipart/form-data'>
         <img
-          // onClick={() => fileRef.current.click()}
-          src={currentUser.data?.user.avatar}
+          src={currentUser?.avatar || currentUser?.user.avatar}
           alt='profile'
           className='rounded-full h-24 w-24 object-cover cursor-pointer self-center mt-2'
         />
@@ -182,15 +195,12 @@ export default function Profile() {
             style={{ display: "none" }}
             accept="image/*"
             {...register("avatar")}
-            // onChange={(e) => {
-            //   setFileName(e.target.files[0].name);
-            // }}
           />
         </div>
         <input
           type='text'
           placeholder='username'
-          defaultValue={currentUser.data?.user.username}
+          defaultValue={currentUser?.username || currentUser?.user.username}
           id='username'
           className='border p-3 rounded-lg'
           {...register("username")}
@@ -199,7 +209,7 @@ export default function Profile() {
           type='email'
           placeholder='email'
           id='email'
-          defaultValue={currentUser.data?.user.email}
+          defaultValue={currentUser?.email || currentUser?.user.email}
           className='border p-3 rounded-lg'
           {...register("email")}
         />
@@ -243,9 +253,8 @@ export default function Profile() {
       </div>
 
       {showMessage && error && <p className='text-red-700 mt-5'>{error}</p>}
-      {/* {showMessage && passError && <p className='text-red-700 mt-5'>{passError}</p>} */}
       {showMessage && updateSuccess && <p className='text-green-700 mt-5'>
-        'User is updated successfully!'
+        User is updated successfully!
       </p>}
       <button onClick={handleShowListings} className='text-green-700 w-full'>
         Show Listings

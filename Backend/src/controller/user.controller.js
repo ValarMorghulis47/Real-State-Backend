@@ -163,7 +163,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await generateTokens(user._id);
     const loggedinuser = await User.findById(user._id).select("-password");  //we made another call to database beacuse the user we got above did not had the refresh token because it was null.
     const options = {
-        httpOnly: true,
+        // httpOnly: true,
         path: '/',
     };
 

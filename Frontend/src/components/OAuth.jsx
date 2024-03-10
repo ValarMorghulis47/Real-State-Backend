@@ -11,14 +11,13 @@ export default function OAuth() {
     try {
       const provider = new GoogleAuthProvider();
       const auth = getAuth(app);
-
       const result = await signInWithPopup(auth, provider);
-      console.log(result);
       const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/users/google/register-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: result.user.displayName,
           email: result.user.email,
@@ -26,10 +25,10 @@ export default function OAuth() {
         }),
       });
       const data = await res.json();
-      dispatch(signInSuccess(data));
+      dispatch(signInSuccess(data.data));
       navigate('/');
     } catch (error) {
-      console.log('could not sign in with google', error);
+      // Handle errors here
     }
   };
   return (
