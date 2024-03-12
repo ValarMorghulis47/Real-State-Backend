@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getDownloadURL,
   getStorage,
@@ -8,11 +8,13 @@ import {
 import { app } from '../firebase';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 
 export default function CreateListing() {
   const { currentUser } = useSelector((state) => state.user);
+  const { register, watch} = useForm();
   const navigate = useNavigate();
-  const [files, setFiles] = useState([]);
+  const [filesd, setFiles] = useState([]);
   const [formData, setFormData] = useState({
     imageUrls: [],
     name: '',
@@ -29,9 +31,27 @@ export default function CreateListing() {
   });
   const [imageUploadError, setImageUploadError] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, seterror] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [fileName, setFileName] = useState([]);
   const [loading, setLoading] = useState(false);
   console.log(formData);
+
+  const files = watch('property');
+  useEffect(() => {
+    if (files && files.length > 2) {
+      setErrorMessage('You can only upload up to 2 images');
+      setTimeout(() => {
+        setErrorMessage('');
+      }, 5000);
+      return;
+    }
+    if (files && files.length > 0 && files.length < 3) {
+      setFileName(Array.from(files).map(file => file.name));
+    }
+  }, [files]);
+
+
   const handleImageSubmit = (e) => {
     if (files.length > 0 && files.length + formData.imageUrls.length < 7) {
       setUploading(true);
@@ -310,30 +330,28 @@ export default function CreateListing() {
           </div>
         </div>
         <div className='flex flex-col flex-1 gap-4'>
-          <p className='font-semibold'>
-            Images:
-            <span className='font-normal text-gray-600 ml-2'>
-              The first image will be the cover (max 6)
-            </span>
-          </p>
-          <div className='flex gap-4'>
-            <input
-              onChange={(e) => setFiles(e.target.files)}
-              className='p-3 border border-gray-300 rounded w-full'
-              type='file'
-              id='images'
-              accept='image/*'
-              multiple
-            />
-            <button
-              type='button'
-              disabled={uploading}
-              onClick={handleImageSubmit}
-              className='p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80'
-            >
-              {uploading ? 'Uploading...' : 'Upload'}
-            </button>
+          <div className='flex gap-4 justify-center'>
+            <label htmlFor="property">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="36"
+                height="36"
+                fill="currentColor"
+                className="bi bi-camera cursor-pointer mx-auto"
+                viewBox="0 0 16 16"
+              >
+                <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z" />
+                <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0" />
+              </svg>
+            </label>
+            <input type="file" id="property" style={{ display: "none" }} {...register("property")} multiple />
           </div>
+          <div className='flex justify-center'>
+          {fileName.map((name, index) => (
+            <p key={index} className='ml-6'>{name}</p>
+          ))}
+          </div>
+          {errorMessage && <p className='text-red-700 text-sm text-center'>{errorMessage}</p>}
           <p className='text-red-700 text-sm'>
             {imageUploadError && imageUploadError}
           </p>
