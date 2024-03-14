@@ -203,7 +203,17 @@ const getSingleProperty = asyncHandler(async (req, res, next) => {
                     ownerDetails: 1,
                     title: 1,
                     description: 1,
-                    image: 1
+                    image: 1,
+                    address: 1,
+                    regularPrice: 1,
+                    discountPrice: 1,
+                    sell: 1,
+                    rent: 1,
+                    parking: 1,
+                    furnished: 1,
+                    offer: 1,
+                    beds: 1,
+                    baths: 1,
                 }
             }
         ]
@@ -213,7 +223,7 @@ const getSingleProperty = asyncHandler(async (req, res, next) => {
         return res.status(error.statusCode).json(error.toResponse());
     }
     return res.status(200).json(
-        new ApiResponse(200, property, "Property Fetched Successfully")
+        new ApiResponse(200, property[0], "Property Fetched Successfully")
     )
 })
 

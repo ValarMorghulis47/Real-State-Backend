@@ -32,14 +32,18 @@ export default function Listing() {
     const fetchListing = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/listing/get/${params.listingId}`);
+        const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/properties/${params.listingId}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
         const data = await res.json();
-        if (data.success === false) {
+        if (!res.ok) {
           setError(true);
           setLoading(false);
           return;
         }
-        setListing(data);
+        console.log(data);
+        setListing(data.data);
         setLoading(false);
         setError(false);
       } catch (error) {
@@ -59,7 +63,7 @@ export default function Listing() {
       {listing && !loading && !error && (
         <div>
           <Swiper navigation>
-            {listing.imageUrls.map((url) => (
+            {listing.image.map((url) => (
               <SwiperSlide key={url}>
                 <div
                   className='h-[550px]'
@@ -90,7 +94,7 @@ export default function Listing() {
           )}
           <div className='flex flex-col max-w-4xl mx-auto p-3 my-7 gap-4'>
             <p className='text-2xl font-semibold'>
-              {listing.name} - ${' '}
+              {listing.title} - ${' '}
               {listing.offer
                 ? listing.discountPrice.toLocaleString('en-US')
                 : listing.regularPrice.toLocaleString('en-US')}
@@ -117,15 +121,15 @@ export default function Listing() {
             <ul className='text-green-900 font-semibold text-sm flex flex-wrap items-center gap-4 sm:gap-6'>
               <li className='flex items-center gap-1 whitespace-nowrap '>
                 <FaBed className='text-lg' />
-                {listing.bedrooms > 1
-                  ? `${listing.bedrooms} beds `
-                  : `${listing.bedrooms} bed `}
+                {listing.beds > 1
+                  ? `${listing.beds} beds `
+                  : `${listing.beds} bed `}
               </li>
               <li className='flex items-center gap-1 whitespace-nowrap '>
                 <FaBath className='text-lg' />
-                {listing.bathrooms > 1
-                  ? `${listing.bathrooms} baths `
-                  : `${listing.bathrooms} bath `}
+                {listing.baths > 1
+                  ? `${listing.baths} baths `
+                  : `${listing.baths} bath `}
               </li>
               <li className='flex items-center gap-1 whitespace-nowrap '>
                 <FaParking className='text-lg' />
@@ -136,7 +140,7 @@ export default function Listing() {
                 {listing.furnished ? 'Furnished' : 'Unfurnished'}
               </li>
             </ul>
-            {currentUser && listing.userRef !== currentUser._id && !contact && (
+            {currentUser && listing.ownerDetails._id !== currentUser._id && !contact && (
               <button
                 onClick={() => setContact(true)}
                 className='bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 p-3'

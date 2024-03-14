@@ -179,7 +179,7 @@ export default function CreateListing() {
         return;
       }
       const data = await res.json();
-      navigate(`/listing/${data._id}`);
+      navigate(`/listing/${data.data._id}`);
     } catch (error) {
       setError(error.message);
       setLoading(false);
