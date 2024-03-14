@@ -9,13 +9,13 @@ import mongoose from "mongoose";
 
 
 const createProperty = asyncHandler(async (req, res, next) => {
-    const { title, description, address, regularPrice, discountPrice, type, parking, furnished, offer, beds, baths } = req.body;
+    const { title, description, address, regularPrice, discountPrice, sell, rent , parking, furnished, offer, beds, baths } = req.body;
     const images = req.files.map(file => file.path); // Get an array of image paths
     if ([title, description, address].some((field) => field?.trim() === "")) {
         const error = new ApiError(410, "Title, Description and Address are required");
         return res.status(error.statusCode).json(error.toResponse());
     }
-    if ([regularPrice, discountPrice, type, parking, furnished, offer, beds, baths, ...images].some((field) => field?.trim() === "")) {
+    if ([regularPrice, sell, rent , parking, furnished, offer, beds, baths, ...images].some((field) => field?.trim() === "")) {
         const error = new ApiError(410, "All fields are required");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -35,7 +35,8 @@ const createProperty = asyncHandler(async (req, res, next) => {
         address,
         regularPrice,
         discountPrice,
-        type,
+        sell,
+        rent,
         parking,
         furnished,
         offer,

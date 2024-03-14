@@ -8,7 +8,7 @@ router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
 
 router.route("/").get(getProperties)
 router.route("/").post(
-    upload.array("image", 2), // Change upload.single to upload.array and specify the field name and maximum count
+    upload.array("property", 2), // Change upload.single to upload.array and specify the field name and maximum count
     createProperty
 );
 router.route("/:propertyId").get(getSingleProperty)

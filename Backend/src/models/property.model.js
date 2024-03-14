@@ -36,12 +36,16 @@ const PropertySchema = new Schema({
     },
     discountPrice: {
         type: Number,
-        required: true
-    },
-    type: {
-        type: String,
         required: true,
-        trim: true
+        default: 0
+    },
+    rent: {
+        type: Boolean,
+        default: false
+    },
+    sell: {
+        type: Boolean,
+        default: false
     },
     parking: {
         type: Boolean,

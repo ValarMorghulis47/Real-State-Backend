@@ -46,7 +46,7 @@ export default function Profile() {
       setFileName(files[0].name);
     }
     console.log(errors);
-  }, [setError]);
+  }, [files , setError]);
 
   const update = async (data) => {
     try {
@@ -214,7 +214,7 @@ export default function Profile() {
             {...register("avatar")}
           /> */}
           {/* {errors.avatar?.message && <p>{errors.avatar.message}</p>} */}
-          <input type="file" id="avatar" {...register("avatar")} />
+          <input type="file" id="avatar" {...register("avatar")} style={{ display: "none" }} />
           {fileName && <p>{fileName}</p>}
         </div>
         <input
