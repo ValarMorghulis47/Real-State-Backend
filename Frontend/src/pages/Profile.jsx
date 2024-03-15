@@ -23,6 +23,8 @@ export default function Profile() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [showListingsError, setShowListingsError] = useState(false);
   const [userListings, setUserListings] = useState([]);
+  const [oneProperty, setOneProperty] = useState();
+  const [TotalProperties, setTotalProperties] = useState();
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -45,8 +47,7 @@ export default function Profile() {
       console.log(files);
       setFileName(files[0].name);
     }
-    console.log(errors);
-  }, [files , setError]);
+  }, [files, setError]);
 
   const update = async (data) => {
     try {
@@ -124,14 +125,22 @@ export default function Profile() {
   const handleShowListings = async () => {
     try {
       setShowListingsError(false);
-      const res = await fetch(`/api/user/listings/${currentUser._id}`);
+      const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/properties/user/${currentUser._id}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
       const data = await res.json();
-      if (data.success === false) {
+      if (!res.ok) {
         setShowListingsError(true);
         return;
       }
-
-      setUserListings(data);
+      if (data.data.totalProperties === 1) {
+        setOneProperty(data.data.properties);
+      }
+      else{
+        setUserListings(data.data.properties);
+      }
+      setTotalProperties(data.data.totalProperties);
     } catch (error) {
       setShowListingsError(true);
     }
@@ -274,8 +283,44 @@ export default function Profile() {
       <p className='text-red-700 mt-5'>
         {showListingsError ? 'Error showing listings' : ''}
       </p>
+      {oneProperty && (
+        <div className='flex flex-col gap-4'>
+          <h1 className='text-center mt-7 text-2xl font-semibold'>
+            Your Listings
+          </h1>
+            <div
+              key={oneProperty._id}
+              className='border rounded-lg p-3 flex justify-between items-center gap-4'
+            >
+              <Link to={`/listing/${oneProperty._id}`}>
+                <img
+                  src={oneProperty.image[0]}
+                  alt='listing cover'
+                  className='h-16 w-16 object-contain'
+                />
+              </Link>
+              <Link
+                className='text-slate-700 font-semibold  hover:underline truncate flex-1'
+                to={`/listing/${oneProperty._id}`}
+              >
+                <p>{oneProperty.title}</p>
+              </Link>
 
-      {userListings && userListings.length > 0 && (
+              <div className='flex flex-col item-center'>
+                <button
+                  onClick={() => handleListingDelete(oneProperty._id)}
+                  className='text-red-700 uppercase'
+                >
+                  Delete
+                </button>
+                <Link to={`/update-listing/${oneProperty._id}`}>
+                  <button className='text-green-700 uppercase'>Edit</button>
+                </Link>
+              </div>
+            </div>
+        </div>
+      )}
+      {userListings && userListings.length > 1 && (
         <div className='flex flex-col gap-4'>
           <h1 className='text-center mt-7 text-2xl font-semibold'>
             Your Listings
@@ -287,7 +332,7 @@ export default function Profile() {
             >
               <Link to={`/listing/${listing._id}`}>
                 <img
-                  src={listing.imageUrls[0]}
+                  src={listing.image[0]}
                   alt='listing cover'
                   className='h-16 w-16 object-contain'
                 />
@@ -296,7 +341,7 @@ export default function Profile() {
                 className='text-slate-700 font-semibold  hover:underline truncate flex-1'
                 to={`/listing/${listing._id}`}
               >
-                <p>{listing.name}</p>
+                <p>{listing.title}</p>
               </Link>
 
               <div className='flex flex-col item-center'>

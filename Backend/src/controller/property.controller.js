@@ -9,13 +9,13 @@ import mongoose from "mongoose";
 
 
 const createProperty = asyncHandler(async (req, res, next) => {
-    const { title, description, address, regularPrice, discountPrice, sell, rent , parking, furnished, offer, beds, baths } = req.body;
+    const { title, description, address, regularPrice, discountPrice, sell, rent, parking, furnished, offer, beds, baths } = req.body;
     const images = req.files.map(file => file.path); // Get an array of image paths
     if ([title, description, address].some((field) => field?.trim() === "")) {
         const error = new ApiError(410, "Title, Description and Address are required");
         return res.status(error.statusCode).json(error.toResponse());
     }
-    if ([regularPrice, sell, rent , parking, furnished, offer, beds, baths, ...images].some((field) => field?.trim() === "")) {
+    if ([regularPrice, sell, rent, parking, furnished, offer, beds, baths, ...images].some((field) => field?.trim() === "")) {
         const error = new ApiError(410, "All fields are required");
         return res.status(error.statusCode).json(error.toResponse());
     }
@@ -227,4 +227,22 @@ const getSingleProperty = asyncHandler(async (req, res, next) => {
     )
 })
 
-export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty }
+const getUserProperties = asyncHandler(async (req, res, next) => {
+    const { userId } = req.params;
+    const properties = await Property.find({ owner: userId })
+    // .limit(limit * 1)
+    // .skip((page - 1) * limit)
+    // .exec();
+    const totalProperties = await Property.countDocuments({ owner: userId });
+
+    if (!properties.length) {
+        const error = new ApiError(404, "Properties not found");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { properties: properties[0], totalProperties: totalProperties }, "Properties Fetched Successfully")
+    );
+});
+
+export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty, getUserProperties }
