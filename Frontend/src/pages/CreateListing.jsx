@@ -35,7 +35,6 @@ export default function CreateListing() {
   const [errorMessage, setErrorMessage] = useState('');
   const [fileName, setFileName] = useState([]);
   const [loading, setLoading] = useState(false);
-  console.log(formData);
 
   const files = watch('property');
   useEffect(() => {
@@ -91,7 +90,6 @@ export default function CreateListing() {
         (snapshot) => {
           const progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`Upload is ${progress}% done`);
         },
         (error) => {
           reject(error);
@@ -145,7 +143,6 @@ export default function CreateListing() {
 
   const createProperty = async (data2) => {
     try {
-      console.log(data2);
       if (data2.property.length < 1)
         return setError('You must upload at least one image');
       if (data2.regularPrice < data2.discountPrice)
@@ -163,6 +160,8 @@ export default function CreateListing() {
       formData.append('beds', data2.beds);
       formData.append('baths', data2.baths);
       formData.append('offer', data2.offer);
+      formData.append('parking', data2.parking);
+      formData.append('furnished', data2.furnished);
       // Append images to formData
       for (let i = 0; i < data2.property.length; i++) {
         formData.append(`property`, data2.property[i]);

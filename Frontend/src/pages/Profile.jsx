@@ -44,7 +44,6 @@ export default function Profile() {
       });
     }
     if (files && files.length > 0) {
-      console.log(files);
       setFileName(files[0].name);
     }
   }, [files, setError]);
@@ -148,17 +147,17 @@ export default function Profile() {
 
   const handleListingDelete = async (listingId) => {
     try {
-      const res = await fetch(`/api/listing/delete/${listingId}`, {
+      const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/properties/${listingId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
-      const data = await res.json();
-      if (data.success === false) {
+      if (!res.ok) {
         return;
       }
-
       setUserListings((prev) =>
         prev.filter((listing) => listing._id !== listingId)
       );
+      setOneProperty();
     } catch (error) {
     }
   };
@@ -281,7 +280,7 @@ export default function Profile() {
         Show Listings
       </button>
       <p className='text-red-700 mt-5'>
-        {showListingsError ? 'Error showing listings' : ''}
+        {showListingsError ? 'No Properties Created For This User' : ''}
       </p>
       {oneProperty && (
         <div className='flex flex-col gap-4'>
