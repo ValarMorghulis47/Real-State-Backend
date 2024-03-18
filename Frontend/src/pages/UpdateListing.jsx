@@ -1,145 +1,32 @@
 import { useEffect, useState } from 'react';
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from 'firebase/storage';
-import { app } from '../firebase';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-
-export default function CreateListing() {
+import { useForm } from 'react-hook-form';
+export default function UpdateListing({ listing }) {
   const { currentUser } = useSelector((state) => state.user);
+  const { register, handleSubmit } = useForm();
   const navigate = useNavigate();
   const params = useParams();
-  const [files, setFiles] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedFileNames, setSelectedFileNames] = useState([]);
   const [formData, setFormData] = useState({
-    imageUrls: [],
-    name: '',
-    description: '',
-    address: '',
-    type: 'rent',
-    bedrooms: 1,
-    bathrooms: 1,
-    regularPrice: 50,
-    discountPrice: 0,
-    offer: false,
-    parking: false,
-    furnished: false,
+    title: listing?.title || '',
+    description: listing?.description || '',
+    address: listing?.address || '',
+    rent: listing?.rent || false,
+    sale: listing?.sale || false,
+    bedrooms: listing?.beds || 1,
+    bathrooms: listing?.baths || 1,
+    regularPrice: listing?.regularPrice || 50,
+    discountPrice: listing?.discountPrice || 0,
+    offer: listing?.offer || false,
+    parking: listing?.parking || false,
+    furnished: listing?.furnished || false,
   });
-  const [imageUploadError, setImageUploadError] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchListing = async () => {
-      const listingId = params.listingId;
-      const res = await fetch(`/api/listing/get/${listingId}`);
-      const data = await res.json();
-      if (data.success === false) {
-        console.log(data.message);
-        return;
-      }
-      setFormData(data);
-    };
-
-    fetchListing();
-  }, []);
-
-  const handleImageSubmit = (e) => {
-    if (files.length > 0 && files.length + formData.imageUrls.length < 7) {
-      setUploading(true);
-      setImageUploadError(false);
-      const promises = [];
-
-      for (let i = 0; i < files.length; i++) {
-        promises.push(storeImage(files[i]));
-      }
-      Promise.all(promises)
-        .then((urls) => {
-          setFormData({
-            ...formData,
-            imageUrls: formData.imageUrls.concat(urls),
-          });
-          setImageUploadError(false);
-          setUploading(false);
-        })
-        .catch((err) => {
-          setImageUploadError('Image upload failed (2 mb max per image)');
-          setUploading(false);
-        });
-    } else {
-      setImageUploadError('You can only upload 6 images per listing');
-      setUploading(false);
-    }
-  };
-
-  const storeImage = async (file) => {
-    return new Promise((resolve, reject) => {
-      const storage = getStorage(app);
-      const fileName = new Date().getTime() + file.name;
-      const storageRef = ref(storage, fileName);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`Upload is ${progress}% done`);
-        },
-        (error) => {
-          reject(error);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            resolve(downloadURL);
-          });
-        }
-      );
-    });
-  };
-
-  const handleRemoveImage = (index) => {
-    setFormData({
-      ...formData,
-      imageUrls: formData.imageUrls.filter((_, i) => i !== index),
-    });
-  };
-
-  const handleChange = (e) => {
-    if (e.target.id === 'sale' || e.target.id === 'rent') {
-      setFormData({
-        ...formData,
-        type: e.target.id,
-      });
-    }
-
-    if (
-      e.target.id === 'parking' ||
-      e.target.id === 'furnished' ||
-      e.target.id === 'offer'
-    ) {
-      setFormData({
-        ...formData,
-        [e.target.id]: e.target.checked,
-      });
-    }
-
-    if (
-      e.target.type === 'number' ||
-      e.target.type === 'text' ||
-      e.target.type === 'textarea'
-    ) {
-      setFormData({
-        ...formData,
-        [e.target.id]: e.target.value,
-      });
-    }
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmite = async (e) => {
     e.preventDefault();
     try {
       if (formData.imageUrls.length < 1)
@@ -169,6 +56,61 @@ export default function CreateListing() {
       setLoading(false);
     }
   };
+  const handleFileChange = (index) => (e) => {
+    const file = e.target.files[0];
+    setSelectedFiles(oldFiles => {
+      const existingFileIndex = oldFiles.findIndex(f => f.index === index);
+      if (existingFileIndex !== -1) {
+        const newFiles = [...oldFiles];
+        newFiles[existingFileIndex] = { index, file };
+        return newFiles;
+      } else {
+        return [...oldFiles, { index, file }];
+      }
+    });
+    setSelectedFileNames(oldNames => {
+      const existingNameIndex = oldNames.findIndex(n => n.index === index);
+      if (existingNameIndex !== -1) {
+        const newNames = [...oldNames];
+        newNames[existingNameIndex] = { index, name: file.name };
+        return newNames;
+      } else {
+        return [...oldNames, { index, name: file.name }];
+      }
+    });
+  };
+  const handleUpdateImage = async (index) => {
+    const selectedFile = selectedFiles.find(file => file.index === index);
+    if (!selectedFile) {
+      setError('You must select an image to update');
+      return;
+    }
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('image', selectedFile.file);
+    formData.append('imageIndices', index);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/properties/updateImages/${listing._id}`, {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      });
+      setLoading(false);
+      if (!response.ok) {
+        const data = await response.json();
+        console.log("data", data);
+        setError(data.error.message);
+        return;
+      }
+      const data = await response.json();
+      //navigate the user to its property page to see the changes: TODO
+    } catch (error) {
+      console.log("error", error);
+      setError(error.message);
+      setLoading(false);
+    }
+  };
   return (
     <main className='p-3 max-w-4xl mx-auto'>
       <h1 className='text-3xl font-semibold text-center my-7'>
@@ -183,17 +125,13 @@ export default function CreateListing() {
             id='name'
             maxLength='62'
             minLength='10'
-            required
-            onChange={handleChange}
-            value={formData.name}
+            value={formData.title}
           />
           <textarea
             type='text'
             placeholder='Description'
             className='border p-3 rounded-lg'
             id='description'
-            required
-            onChange={handleChange}
             value={formData.description}
           />
           <input
@@ -201,8 +139,6 @@ export default function CreateListing() {
             placeholder='Address'
             className='border p-3 rounded-lg'
             id='address'
-            required
-            onChange={handleChange}
             value={formData.address}
           />
           <div className='flex gap-6 flex-wrap'>
@@ -211,7 +147,6 @@ export default function CreateListing() {
                 type='checkbox'
                 id='sale'
                 className='w-5'
-                onChange={handleChange}
                 checked={formData.type === 'sale'}
               />
               <span>Sell</span>
@@ -221,7 +156,6 @@ export default function CreateListing() {
                 type='checkbox'
                 id='rent'
                 className='w-5'
-                onChange={handleChange}
                 checked={formData.type === 'rent'}
               />
               <span>Rent</span>
@@ -231,7 +165,6 @@ export default function CreateListing() {
                 type='checkbox'
                 id='parking'
                 className='w-5'
-                onChange={handleChange}
                 checked={formData.parking}
               />
               <span>Parking spot</span>
@@ -241,7 +174,6 @@ export default function CreateListing() {
                 type='checkbox'
                 id='furnished'
                 className='w-5'
-                onChange={handleChange}
                 checked={formData.furnished}
               />
               <span>Furnished</span>
@@ -251,7 +183,6 @@ export default function CreateListing() {
                 type='checkbox'
                 id='offer'
                 className='w-5'
-                onChange={handleChange}
                 checked={formData.offer}
               />
               <span>Offer</span>
@@ -266,7 +197,6 @@ export default function CreateListing() {
                 max='10'
                 required
                 className='p-3 border border-gray-300 rounded-lg'
-                onChange={handleChange}
                 value={formData.bedrooms}
               />
               <p>Beds</p>
@@ -279,7 +209,6 @@ export default function CreateListing() {
                 max='10'
                 required
                 className='p-3 border border-gray-300 rounded-lg'
-                onChange={handleChange}
                 value={formData.bathrooms}
               />
               <p>Baths</p>
@@ -290,9 +219,7 @@ export default function CreateListing() {
                 id='regularPrice'
                 min='50'
                 max='10000000'
-                required
                 className='p-3 border border-gray-300 rounded-lg'
-                onChange={handleChange}
                 value={formData.regularPrice}
               />
               <div className='flex flex-col items-center'>
@@ -309,9 +236,7 @@ export default function CreateListing() {
                   id='discountPrice'
                   min='0'
                   max='10000000'
-                  required
                   className='p-3 border border-gray-300 rounded-lg'
-                  onChange={handleChange}
                   value={formData.discountPrice}
                 />
                 <div className='flex flex-col items-center'>
@@ -325,35 +250,8 @@ export default function CreateListing() {
           </div>
         </div>
         <div className='flex flex-col flex-1 gap-4'>
-          <p className='font-semibold'>
-            Images:
-            <span className='font-normal text-gray-600 ml-2'>
-              The first image will be the cover (max 6)
-            </span>
-          </p>
-          <div className='flex gap-4'>
-            <input
-              onChange={(e) => setFiles(e.target.files)}
-              className='p-3 border border-gray-300 rounded w-full'
-              type='file'
-              id='images'
-              accept='image/*'
-              multiple
-            />
-            <button
-              type='button'
-              disabled={uploading}
-              onClick={handleImageSubmit}
-              className='p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80'
-            >
-              {uploading ? 'Uploading...' : 'Upload'}
-            </button>
-          </div>
-          <p className='text-red-700 text-sm'>
-            {imageUploadError && imageUploadError}
-          </p>
-          {formData.imageUrls.length > 0 &&
-            formData.imageUrls.map((url, index) => (
+          {listing && listing.image.length > 0 &&
+            listing.image.map((url, index) => (
               <div
                 key={url}
                 className='flex justify-between p-3 border items-center'
@@ -363,17 +261,35 @@ export default function CreateListing() {
                   alt='listing image'
                   className='w-20 h-20 object-contain rounded-lg'
                 />
-                <button
-                  type='button'
-                  onClick={() => handleRemoveImage(index)}
-                  className='p-3 text-red-700 rounded-lg uppercase hover:opacity-75'
-                >
-                  Delete
-                </button>
+                <div>
+                  <label htmlFor={`property${index}`}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="36"
+                      height="36"
+                      fill="currentColor"
+                      className="bi bi-camera cursor-pointer mx-auto"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4z" />
+                      <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5m0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0" />
+                    </svg>
+                  </label>
+                  <p>{selectedFileNames.find(file => file.index === index)?.name}</p>
+                  <input type="file" id={`property${index}`} style={{ display: "none" }} onChange={handleFileChange(index)} />
+                  <button
+                    type='button'
+                    onClick={() => handleUpdateImage(index)}
+                    className='p-3 text-red-700 rounded-lg uppercase hover:opacity-75'
+                  >
+                    Update
+                  </button>
+                </div>
+
               </div>
             ))}
           <button
-            disabled={loading || uploading}
+            disabled={loading}
             className='p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80'
           >
             {loading ? 'Updating...' : 'Update listing'}

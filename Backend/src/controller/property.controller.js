@@ -54,18 +54,17 @@ const createProperty = asyncHandler(async (req, res, next) => {
     );
 });
 
-const updateProperty = asyncHandler(async (req, res, next) => {
+const updatePropertyImages = asyncHandler(async (req, res, next) => {
     const { propertyId } = req.params;
-    const { title, description, imageIndices } = req.body; // get the imageIndeces like the array indexes
+    const { imageIndices } = req.body; // get the imageIndeces like the array indexes
     const files = req.files;
 
-    if (!(title || description || files)) {
-        const error = new ApiError(410, "At least One Field Is Required To Update The Property");
+    if (!files) {
+        const error = new ApiError(410, "At least One Image Is Required To Update The Property");
         return res.status(error.statusCode).json(error.toResponse());
     }
 
     const property = await Property.findById(propertyId);
-    console.log(property);
     if (files && imageIndices && imageIndices.length === files.length) {
         for (let i = 0; i < files.length; i++) {
             console.log(imageIndices[i]);
@@ -79,6 +78,19 @@ const updateProperty = asyncHandler(async (req, res, next) => {
             property.imagePublicId[imageIndices[i]] = newImage.public_id;
         }
         await property.save();
+    }
+    return res.status(200).json(
+        new ApiResponse(200, property, "Property Images Updated Successfully")
+    );
+});
+
+const updateProperty = asyncHandler(async (req, res, next) => {
+    const { propertyId } = req.params;
+    const { title, description } = req.body;
+
+    if (!(title || description || files)) {
+        const error = new ApiError(410, "At least One Field Is Required To Update The Property");
+        return res.status(error.statusCode).json(error.toResponse());
     }
 
     const updatedProperty = await Property.findByIdAndUpdate(propertyId, { $set: { title, description } }, { new: true });
@@ -250,4 +262,4 @@ const getUserProperties = asyncHandler(async (req, res, next) => {
     }
 });
 
-export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty, getUserProperties }
+export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty, getUserProperties, updatePropertyImages }
