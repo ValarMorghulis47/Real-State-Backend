@@ -14,6 +14,6 @@ router.route("/").post(
 router.route("/:propertyId").get(getSingleProperty)
 router.route("/user/:userId").get(getUserProperties)
 router.route("/:propertyId").delete(deleteProperty)
-router.route("/updateImages/:propertyId").patch(upload.array("image",2), updatePropertyImages);
+router.route("/updateImages/:propertyId").patch(upload.array("image", 2), updatePropertyImages);
 router.route("/:propertyId").patch(updateProperty);
 export default router

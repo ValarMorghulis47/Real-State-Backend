@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { set, useForm } from 'react-hook-form';
 export default function UpdateListing({ listing }) {
   const { currentUser } = useSelector((state) => state.user);
   const { register, handleSubmit } = useForm();
@@ -9,48 +9,54 @@ export default function UpdateListing({ listing }) {
   const params = useParams();
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedFileNames, setSelectedFileNames] = useState([]);
-  const [formData, setFormData] = useState({
-    title: listing?.title || '',
-    description: listing?.description || '',
-    address: listing?.address || '',
-    rent: listing?.rent || false,
-    sale: listing?.sale || false,
-    bedrooms: listing?.beds || 1,
-    bathrooms: listing?.baths || 1,
-    regularPrice: listing?.regularPrice || 50,
-    discountPrice: listing?.discountPrice || 0,
-    offer: listing?.offer || false,
-    parking: listing?.parking || false,
-    furnished: listing?.furnished || false,
+  const [showMessage, setShowMessage] = useState(false);
+  const [initialData, setinitialData] = useState({
+    title: listing?.title,
+    description: listing?.description,
+    address: listing?.address,
+    rent: listing?.rent,
+    sale: listing?.sell,
+    beds: String(listing?.beds),
+    baths: String(listing?.baths),
+    regularPrice: String(listing?.regularPrice),
+    discountPrice: String(listing?.discountPrice),
+    offer: listing?.offer,
+    parking: listing?.parking,
+    furnished: listing?.furnished,
   });
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const handleSubmite = async (e) => {
-    e.preventDefault();
+  const update = async (data) => {
     try {
-      if (formData.imageUrls.length < 1)
-        return setError('You must upload at least one image');
-      if (+formData.regularPrice < +formData.discountPrice)
+      const formData = new FormData();
+      if (data.regularPrice < data.discountPrice)
         return setError('Discount price must be lower than regular price');
+      let isSame = true;
+      for (let key in data) {
+        if (data[key] !== initialData[key]) {
+          isSame = false;
+          formData.append(key, data[key]);
+        }
+      }
+      if (isSame) {
+        return setError('You must change at least one field');
+      }
       setLoading(true);
       setError(false);
-      const res = await fetch(`/api/listing/update/${params.listingId}`, {
-        method: 'POST',
+      const res = await fetch(`${import.meta.env.VITE_BASE_URI}/api/v1/properties/${params.listingId}`, {
+        method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',  //if we are using formdata and there is no file to send then we can use this header otherwise use multipart/form-data
         },
-        body: JSON.stringify({
-          ...formData,
-          userRef: currentUser._id,
-        }),
+        body: new URLSearchParams(formData),
+        credentials: 'include',
       });
-      const data = await res.json();
+      const data2 = await res.json();
       setLoading(false);
-      if (data.success === false) {
-        setError(data.message);
+      if (data2.success === false) {
+        setError(data2.message);
       }
-      navigate(`/listing/${data._id}`);
+      navigate(`/listing/${data2.data._id}`);
     } catch (error) {
       setError(error.message);
       setLoading(false);
@@ -99,24 +105,32 @@ export default function UpdateListing({ listing }) {
       setLoading(false);
       if (!response.ok) {
         const data = await response.json();
-        console.log("data", data);
         setError(data.error.message);
         return;
       }
       const data = await response.json();
-      //navigate the user to its property page to see the changes: TODO
+      navigate(`/listing/${data._id}`);
     } catch (error) {
-      console.log("error", error);
       setError(error.message);
       setLoading(false);
     }
   };
+  useEffect(() => {
+    if (error) {
+      setShowMessage(true);
+      const timer = setTimeout(() => {
+        setShowMessage(false);
+        setError(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, showMessage]);
   return (
     <main className='p-3 max-w-4xl mx-auto'>
       <h1 className='text-3xl font-semibold text-center my-7'>
         Update a Listing
       </h1>
-      <form onSubmit={handleSubmit} className='flex flex-col sm:flex-row gap-4'>
+      <form onSubmit={handleSubmit(update)} className='flex flex-col sm:flex-row gap-4'>
         <div className='flex flex-col gap-4 flex-1'>
           <input
             type='text'
@@ -125,21 +139,24 @@ export default function UpdateListing({ listing }) {
             id='name'
             maxLength='62'
             minLength='10'
-            value={formData.title}
+            {...register('title')}
+            defaultValue={initialData.title}
           />
           <textarea
             type='text'
             placeholder='Description'
             className='border p-3 rounded-lg'
             id='description'
-            value={formData.description}
+            {...register('description')}
+            defaultValue={initialData.description}
           />
           <input
             type='text'
             placeholder='Address'
             className='border p-3 rounded-lg'
             id='address'
-            value={formData.address}
+            {...register('address')}
+            defaultValue={initialData.address}
           />
           <div className='flex gap-6 flex-wrap'>
             <div className='flex gap-2'>
@@ -147,7 +164,8 @@ export default function UpdateListing({ listing }) {
                 type='checkbox'
                 id='sale'
                 className='w-5'
-                checked={formData.type === 'sale'}
+                {...register('sale')}
+                defaultChecked={initialData.type === 'sale'}
               />
               <span>Sell</span>
             </div>
@@ -156,7 +174,8 @@ export default function UpdateListing({ listing }) {
                 type='checkbox'
                 id='rent'
                 className='w-5'
-                checked={formData.type === 'rent'}
+                {...register('rent')}
+                defaultChecked={initialData.type === 'rent'}
               />
               <span>Rent</span>
             </div>
@@ -165,7 +184,8 @@ export default function UpdateListing({ listing }) {
                 type='checkbox'
                 id='parking'
                 className='w-5'
-                checked={formData.parking}
+                {...register('parking')}
+                defaultChecked={initialData.parking}
               />
               <span>Parking spot</span>
             </div>
@@ -174,7 +194,8 @@ export default function UpdateListing({ listing }) {
                 type='checkbox'
                 id='furnished'
                 className='w-5'
-                checked={formData.furnished}
+                {...register('furnished')}
+                defaultChecked={initialData.furnished}
               />
               <span>Furnished</span>
             </div>
@@ -183,7 +204,8 @@ export default function UpdateListing({ listing }) {
                 type='checkbox'
                 id='offer'
                 className='w-5'
-                checked={formData.offer}
+                {...register('offer')}
+                defaultChecked={initialData.offer}
               />
               <span>Offer</span>
             </div>
@@ -197,7 +219,8 @@ export default function UpdateListing({ listing }) {
                 max='10'
                 required
                 className='p-3 border border-gray-300 rounded-lg'
-                value={formData.bedrooms}
+                {...register('beds')}
+                defaultValue={initialData.beds}
               />
               <p>Beds</p>
             </div>
@@ -209,7 +232,8 @@ export default function UpdateListing({ listing }) {
                 max='10'
                 required
                 className='p-3 border border-gray-300 rounded-lg'
-                value={formData.bathrooms}
+                {...register('baths')}
+                defaultValue={initialData.baths}
               />
               <p>Baths</p>
             </div>
@@ -220,16 +244,17 @@ export default function UpdateListing({ listing }) {
                 min='50'
                 max='10000000'
                 className='p-3 border border-gray-300 rounded-lg'
-                value={formData.regularPrice}
+                {...register('regularPrice')}
+                defaultValue={initialData.regularPrice}
               />
               <div className='flex flex-col items-center'>
                 <p>Regular price</p>
-                {formData.type === 'rent' && (
+                {initialData.type === 'rent' && (
                   <span className='text-xs'>($ / month)</span>
                 )}
               </div>
             </div>
-            {formData.offer && (
+            {initialData.offer && (
               <div className='flex items-center gap-2'>
                 <input
                   type='number'
@@ -237,11 +262,12 @@ export default function UpdateListing({ listing }) {
                   min='0'
                   max='10000000'
                   className='p-3 border border-gray-300 rounded-lg'
-                  value={formData.discountPrice}
+                  {...register('discountPrice')}
+                  defaultValue={initialData.discountPrice}
                 />
                 <div className='flex flex-col items-center'>
                   <p>Discounted price</p>
-                  {formData.type === 'rent' && (
+                  {initialData.type === 'rent' && (
                     <span className='text-xs'>($ / month)</span>
                   )}
                 </div>

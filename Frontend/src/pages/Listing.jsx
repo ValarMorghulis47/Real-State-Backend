@@ -42,7 +42,6 @@ export default function Listing() {
           setLoading(false);
           return;
         }
-        console.log(data);
         setListing(data.data);
         setLoading(false);
         setError(false);

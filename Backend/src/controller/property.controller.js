@@ -67,7 +67,6 @@ const updatePropertyImages = asyncHandler(async (req, res, next) => {
     const property = await Property.findById(propertyId);
     if (files && imageIndices && imageIndices.length === files.length) {
         for (let i = 0; i < files.length; i++) {
-            console.log(imageIndices[i]);
             const oldImage = property.image[imageIndices[i]];
             const oldImagePublicId = property.imagePublicId[imageIndices[i]];
             const newImage = await uploadOnCloudinary(files[i].path, 'property');
@@ -85,23 +84,18 @@ const updatePropertyImages = asyncHandler(async (req, res, next) => {
 });
 
 const updateProperty = asyncHandler(async (req, res, next) => {
-    const { propertyId } = req.params;
-    const { title, description } = req.body;
-
-    if (!(title || description || files)) {
-        const error = new ApiError(410, "At least One Field Is Required To Update The Property");
+    const property = await Property.findById(req.params.propertyId);
+    if (!property) {
+        const error = new ApiError(404, "Property not found");
         return res.status(error.statusCode).json(error.toResponse());
     }
-
-    const updatedProperty = await Property.findByIdAndUpdate(propertyId, { $set: { title, description } }, { new: true });
-
-    if (!updatedProperty) {
-        const error = new ApiError(430, "Property not updated, try again later");
-        return res.status(error.statusCode).json(error.toResponse());
+    // Update the fields in the property document
+    for (let key in req.body) {
+        property[key] = req.body[key];
     }
-
+    await property.save();
     return res.status(200).json(
-        new ApiResponse(200, updatedProperty, "Property Updated Successfully")
+        new ApiResponse(200, property, "Property Updated Successfully")
     );
 });
 
