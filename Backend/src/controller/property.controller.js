@@ -193,8 +193,6 @@ const getSingleProperty = asyncHandler(async (req, res, next) => {
                             $project: {
                                 username: 1,
                                 avatar: 1,
-                                phoneno: 1,
-                                city: 1,
                                 email: 1,
                             }
                         }
@@ -260,4 +258,58 @@ const getUserProperties = asyncHandler(async (req, res, next) => {
     }
 });
 
-export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty, getUserProperties, updatePropertyImages }
+const getLandLordInfo = asyncHandler(async (req, res, next) => {
+    const { propertyId } = req.params;
+    const propertyexits = await Property.findById(propertyId);
+    if (!propertyexits) {
+        const error = new ApiError(404, "Property not found");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    const UserInfo = await Property.aggregate(
+        [
+            {
+                $match: {
+                    _id: mongoose.Types.ObjectId.createFromHexString(propertyId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "ownerDetails",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                avatar: 1,
+                                email: 1,
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    ownerDetails: {
+                        $first: "$ownerDetails"
+                    }
+                }
+            },
+            {
+                $project: {
+                    ownerDetails: 1,
+                }
+            }
+        ]
+    )
+    if (!UserInfo.length) {
+        const error = new ApiError(404, "Property not found");
+        return res.status(error.statusCode).json(error.toResponse());
+    }
+    return res.status(200).json(
+        new ApiResponse(200, UserInfo[0], "User Data Fetched Successfully")
+    )
+})
+
+export { createProperty, updateProperty, deleteProperty, getProperties, getSingleProperty, getUserProperties, updatePropertyImages, getLandLordInfo }
