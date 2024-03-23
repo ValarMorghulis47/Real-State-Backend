@@ -10,7 +10,8 @@ const PropertySchema = new Schema({
     description: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        index: true
     },
     owner: {
         type: Schema.Types.ObjectId,
@@ -28,7 +29,8 @@ const PropertySchema = new Schema({
     address: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        index: true
     },
     regularPrice: {
         type: Number,

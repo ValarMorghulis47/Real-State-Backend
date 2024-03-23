@@ -7,7 +7,6 @@ export default function CreateListing() {
   const { register, watch, handleSubmit } = useForm();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    imageUrls: [],
     name: '',
     description: '',
     address: '',
@@ -60,6 +59,12 @@ export default function CreateListing() {
       formData.append('offer', data2.offer);
       formData.append('parking', data2.parking);
       formData.append('furnished', data2.furnished);
+      if (data2.sell) {
+        formData.append('sell',data2.sell);
+      }
+      if (data2.rent) {
+        formData.append('rent',data2.rent);
+      }
       // Append images to formData
       for (let i = 0; i < data2.property.length; i++) {
         formData.append(`property`, data2.property[i]);
@@ -121,7 +126,7 @@ export default function CreateListing() {
                 type='checkbox'
                 id='sale'
                 className='w-5'
-                {...register('sale')}
+                {...register('sell')}
                 defaultChecked={formData.type === 'sale'}
               />
               <span>Sell</span>
@@ -265,7 +270,7 @@ export default function CreateListing() {
           </div>
           {errorMessage && <p className='text-red-700 text-sm text-center'>{errorMessage}</p>}
           <button
-            disabled={loading || uploading}
+            disabled={loading}
             className='p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80'
           >
             {loading ? 'Creating...' : 'Create listing'}

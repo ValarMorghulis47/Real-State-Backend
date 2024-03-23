@@ -123,45 +123,49 @@ const deleteProperty = asyncHandler(async (req, res, next) => {
 });
 
 const getProperties = asyncHandler(async (req, res, next) => {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, sell, rent, offer } = req.query;
+    if (offer) {
+        const properties = await Property.find({ offer: offer }).limit(limit * 1).skip((page - 1) * limit);
+        // const totalProperties = await Property.countDocuments();
 
-    const properties = await Property.aggregate([
-        {
-            $lookup: {
-                from: "users", // Name of the User collection
-                localField: "owner",
-                foreignField: "_id",
-                as: "ownerDetails"
-            }
-        },
-        {
-            $project: {
-                username: 1,
-                avatar: 1,
-                // Include other property fields you need
-                owner: {
-                    $arrayElemAt: ["$ownerDetails", 0]
-                }
-            }
-        },
-        {
-            $limit: limit * 1
-        },
-        {
-            $skip: (page - 1) * limit
+        if (!properties.length) {
+            const error = new ApiError(404, "Properties not found");
+            return res.status(error.statusCode).json(error.toResponse());
         }
-    ]);
 
-    const totalProperties = await Property.countDocuments();
-
-    if (!properties.length) {
-        const error = new ApiError(404, "Properties not found");
-        return res.status(error.statusCode).json(error.toResponse());
+        return res.status(200).json(
+            // new ApiResponse(200, { properties: properties, totalProperties: totalProperties }, "Properties Fetched Successfully")
+            new ApiResponse(200, properties, "Properties Fetched Successfully")
+        );
     }
+    else if(sell) {
+        const properties = await Property.find({ sell: sell }).limit(limit * 1).skip((page - 1) * limit);
+        // const totalProperties = await Property.countDocuments();
 
-    return res.status(200).json(
-        new ApiResponse(200, { properties: properties, totalProperties: totalProperties }, "Properties Fetched Successfully")
-    );
+        if (!properties.length) {
+            const error = new ApiError(404, "Properties not found");
+            return res.status(error.statusCode).json(error.toResponse());
+        }
+
+        return res.status(200).json(
+            // new ApiResponse(200, { properties: properties, totalProperties: totalProperties }, "Properties Fetched Successfully")
+            new ApiResponse(200, properties, "Properties Fetched Successfully")
+        );
+    }
+    else{
+        const properties = await Property.find({ rent: rent }).limit(limit * 1).skip((page - 1) * limit);
+        // const totalProperties = await Property.countDocuments();
+
+        if (!properties.length) {
+            const error = new ApiError(404, "Properties not found");
+            return res.status(error.statusCode).json(error.toResponse());
+        }
+
+        return res.status(200).json(
+            // new ApiResponse(200, { properties: properties, totalProperties: totalProperties }, "Properties Fetched Successfully")
+            new ApiResponse(200, properties, "Properties Fetched Successfully")
+        );
+    }
 });
 
 const getSingleProperty = asyncHandler(async (req, res, next) => {

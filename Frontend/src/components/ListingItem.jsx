@@ -7,7 +7,7 @@ export default function ListingItem({ listing }) {
       <Link to={`/listing/${listing._id}`}>
         <img
           src={
-            listing.imageUrls[0] ||
+            listing.image[0] ||
             'https://53.fs1.hubspotusercontent-na1.net/hub/53/hubfs/Sales_Blog/real-estate-business-compressor.jpg?width=595&height=400&name=real-estate-business-compressor.jpg'
           }
           alt='listing cover'
@@ -31,18 +31,18 @@ export default function ListingItem({ listing }) {
             {listing.offer
               ? listing.discountPrice.toLocaleString('en-US')
               : listing.regularPrice.toLocaleString('en-US')}
-            {listing.type === 'rent' && ' / month'}
+            {listing.rent && ' / month'}
           </p>
           <div className='text-slate-700 flex gap-4'>
             <div className='font-bold text-xs'>
-              {listing.bedrooms > 1
-                ? `${listing.bedrooms} beds `
-                : `${listing.bedrooms} bed `}
+              {listing.beds > 1
+                ? `${listing.beds} beds `
+                : `${listing.beds} bed `}
             </div>
             <div className='font-bold text-xs'>
               {listing.bathrooms > 1
-                ? `${listing.bathrooms} baths `
-                : `${listing.bathrooms} bath `}
+                ? `${listing.baths} baths `
+                : `${listing.baths} bath `}
             </div>
           </div>
         </div>
